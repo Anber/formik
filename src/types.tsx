@@ -258,3 +258,5 @@ export type GenericFieldHTMLAttributes =
   | React.InputHTMLAttributes<HTMLInputElement>
   | React.SelectHTMLAttributes<HTMLSelectElement>
   | React.TextareaHTMLAttributes<HTMLTextAreaElement>;
+
+export type PromiseOrValue<T> = PromiseLike<T> | T;

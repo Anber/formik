@@ -163,3 +163,39 @@ export function getActiveElement(doc?: Document): Element | null {
     return doc.body;
   }
 }
+
+export class ThrottledAction<TRes> {
+  private readonly delay: number = 0;
+  private lastAction?: () => Promise<TRes>;
+  private activePromise: {
+    promise?: Promise<any>;
+    resolve?: (x: any) => any;
+    reject?: (e: any) => any;
+  } = {};
+
+  constructor(delay: number = 0) {
+    this.delay = delay;
+  }
+
+  enqueue(action: () => Promise<TRes>): Promise<TRes> {
+    this.lastAction = action;
+    if (!this.activePromise.promise) {
+      this.activePromise.promise = new Promise<TRes>(this.executor);
+    }
+
+    return this.activePromise.promise;
+  }
+
+  private executor = (resolve: (x: any) => any, reject: (e: any) => any) => {
+    this.activePromise.resolve = resolve;
+    this.activePromise.reject = reject;
+
+    setTimeout(this.run, this.delay);
+  };
+
+  private run = (): void => {
+    const { resolve, reject } = this.activePromise;
+    this.activePromise = {};
+    this.lastAction!().then(resolve, reject);
+  };
+}

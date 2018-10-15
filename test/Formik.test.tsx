@@ -155,6 +155,8 @@ describe('<Formik>', () => {
               value: 'ian',
             },
           });
+
+        await sleep(0); // wait for scheduled tasks
         expect(validate).toHaveBeenCalled();
       });
 
@@ -274,6 +276,8 @@ describe('<Formik>', () => {
               name: 'name',
             },
           });
+
+        await sleep(0); // wait for scheduled tasks
         expect(validate).toHaveBeenCalledTimes(1);
       });
     });
@@ -564,6 +568,8 @@ describe('<Formik>', () => {
         .find(Form)
         .props()
         .setValues({ name: 'ian' });
+
+      await sleep(0); // wait for scheduled tasks
       expect(validate).toHaveBeenCalled();
     });
 
@@ -599,7 +605,7 @@ describe('<Formik>', () => {
       ).toEqual('ian');
     });
 
-    it('setFieldValue should run validations when validateOnChange is true', () => {
+    it('setFieldValue should run validations when validateOnChange is true', async () => {
       const validate = jest.fn().mockReturnValue({});
 
       const tree = shallow(
@@ -615,6 +621,8 @@ describe('<Formik>', () => {
         .find(Form)
         .props()
         .setFieldValue('name', 'ian');
+
+      await sleep(0); // wait for scheduled tasks
       expect(validate).toHaveBeenCalled();
     });
 
@@ -665,10 +673,12 @@ describe('<Formik>', () => {
         .find(Form)
         .props()
         .setTouched({ name: true });
+
+      await sleep(0); // wait for scheduled tasks
       expect(validate).toHaveBeenCalled();
     });
 
-    it('setTouched should run validations when validateOnBlur is true', () => {
+    it('setTouched should run validations when validateOnBlur is true', async () => {
       const validate = jest.fn();
 
       const tree = shallow(
@@ -684,6 +694,8 @@ describe('<Formik>', () => {
         .find(Form)
         .props()
         .setTouched({ name: true });
+
+      await sleep(0); // wait for scheduled tasks
       expect(validate).toHaveBeenCalled();
     });
 
@@ -738,6 +750,8 @@ describe('<Formik>', () => {
         .find(Form)
         .props()
         .setFieldTouched('name', true);
+
+      await sleep(0); // wait for scheduled tasks
       expect(validate).toHaveBeenCalled();
     });
 
@@ -1237,7 +1251,13 @@ describe('<Formik>', () => {
   it('isValidating is fired when submit is attempted', async () => {
     const node = document.createElement('div');
     const onSubmit = jest.fn();
-    const validate = jest.fn(() => ({ opensource: 'no ' }));
+    let reject;
+    const validate = jest.fn(
+      () =>
+        new Promise((_res, rej) => {
+          reject = rej;
+        })
+    );
     let injected: any;
     ReactDOM.render(
       <Formik
@@ -1255,9 +1275,13 @@ describe('<Formik>', () => {
     expect(injected.isValidating).toBe(false);
     // we call set isValidating synchronously
     const validatePromise = injected.submitForm();
+    await sleep(0); // wait for scheduled tasks
+
     // so it should change
     expect(injected.isSubmitting).toBe(true);
     expect(injected.isValidating).toBe(true);
+    reject({ opensource: 'no ' });
+
     // do it again async
     await validatePromise;
     // now both should be false because validation failed
@@ -1271,7 +1295,13 @@ describe('<Formik>', () => {
   it('isSubmitting is fired when submit is attempted', async () => {
     const node = document.createElement('div');
     const onSubmit = jest.fn();
-    const validate = jest.fn(() => ({}));
+    let resolve;
+    const validate = jest.fn(
+      () =>
+        new Promise((_res, rej) => {
+          resolve = rej;
+        })
+    );
     let injected: any;
     ReactDOM.render(
       <Formik
@@ -1289,9 +1319,13 @@ describe('<Formik>', () => {
     expect(injected.isValidating).toBe(false);
     // we call set isValidating synchronously
     const validatePromise = injected.submitForm();
+    await sleep(0); // wait for scheduled tasks
+
     // so it should change
     expect(injected.isSubmitting).toBe(true);
     expect(injected.isValidating).toBe(true);
+    resolve({});
+
     // do it again async
     await validatePromise;
     // done validating
@@ -1305,7 +1339,13 @@ describe('<Formik>', () => {
 
   it('isValidating is fired validation is run', async () => {
     const node = document.createElement('div');
-    const validate = jest.fn(() => ({ opensource: 'no' }));
+    let reject;
+    const validate = jest.fn(
+      () =>
+        new Promise((_res, rej) => {
+          reject = rej;
+        })
+    );
     let injected: any;
     ReactDOM.render(
       <Formik
@@ -1321,7 +1361,11 @@ describe('<Formik>', () => {
     expect(injected.isValidating).toBe(false);
     // we call set isValidating synchronously
     const validatePromise = injected.validateForm();
+    await sleep(0); // wait for scheduled tasks
+
     expect(injected.isValidating).toBe(true);
+    reject({ opensource: 'no ' });
+
     await validatePromise;
     expect(validate).toHaveBeenCalled();
     // so it should change

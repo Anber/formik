@@ -12,6 +12,7 @@ import {
   FormikValues,
   FormikContext,
   FormikProps,
+  PromiseOrValue,
 } from './types';
 import {
   isEmptyChildren,
@@ -24,9 +25,9 @@ import {
   getActiveElement,
   getIn,
   getStateUpdater,
+  ThrottledAction,
 } from './utils';
 
-type PromiseOrValue<T> = PromiseLike<T> | T;
 type ValidationResult<TResult> = {
   key: object[];
   result: TResult;
@@ -69,6 +70,8 @@ export class Formik<Values = object, ExtraProps = {}> extends React.Component<
   private lastValidateHandlerResult: ValidationResult<
     PromiseLike<FormikErrors<Values>>
   > = null;
+
+  private runValidationTask = new ThrottledAction<FormikErrors<Values>>(0);
 
   constructor(props: FormikConfig<Values> & ExtraProps) {
     super(props);
@@ -299,45 +302,47 @@ export class Formik<Values = object, ExtraProps = {}> extends React.Component<
   runValidations = (
     values: FormikValues = this.state.values
   ): Promise<FormikErrors<Values>> => {
-    const validationResults = [
-      this.runFieldLevelValidations(values),
-      this.props.validationSchema
-        ? this.runValidationSchema(values)
-        : emptyObject,
-      this.props.validate ? this.runValidateHandler(values) : emptyObject,
-    ];
+    return this.runValidationTask.enqueue(() => {
+      const validationResults = [
+        this.runFieldLevelValidations(values),
+        this.props.validationSchema
+          ? this.runValidationSchema(values)
+          : emptyObject,
+        this.props.validate ? this.runValidateHandler(values) : emptyObject,
+      ];
 
-    if (
-      this.lastValidationResults &&
-      validationResults.every(
-        (el, i) => el === this.lastValidationResults!.key[i]
-      )
-    ) {
-      const combinedErrors = this.lastValidationResults.result;
-      if (this.didMount) {
-        this.setState(getStateUpdater('isValidating', false));
-        this.setState(getStateUpdater('errors', combinedErrors));
+      if (
+        this.lastValidationResults &&
+        validationResults.every(
+          (el, i) => el === this.lastValidationResults!.key[i]
+        )
+      ) {
+        const combinedErrors = this.lastValidationResults.result;
+        if (this.didMount) {
+          this.setState(getStateUpdater('isValidating', false));
+          this.setState(getStateUpdater('errors', combinedErrors));
+        }
+
+        return Promise.resolve(combinedErrors);
       }
 
-      return Promise.resolve(combinedErrors);
-    }
+      this.setState({ isValidating: true });
+      return Promise.all(validationResults).then(errors => {
+        const combinedErrors = deepmerge.all<FormikErrors<Values>>(errors, {
+          arrayMerge,
+        });
 
-    this.setState({ isValidating: true });
-    return Promise.all(validationResults).then(errors => {
-      const combinedErrors = deepmerge.all<FormikErrors<Values>>(errors, {
-        arrayMerge,
+        if (this.didMount) {
+          this.setState(getStateUpdater('isValidating', false));
+          this.setState(getStateUpdater('errors', combinedErrors));
+        }
+
+        this.lastValidationResults = {
+          key: validationResults,
+          result: combinedErrors,
+        };
+        return combinedErrors;
       });
-
-      if (this.didMount) {
-        this.setState(getStateUpdater('isValidating', false));
-        this.setState(getStateUpdater('errors', combinedErrors));
-      }
-
-      this.lastValidationResults = {
-        key: validationResults,
-        result: combinedErrors,
-      };
-      return combinedErrors;
     });
   };
 

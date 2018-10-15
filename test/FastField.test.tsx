@@ -3,7 +3,7 @@ import * as ReactDOM from 'react-dom';
 import { Formik, FastField as Field, FieldProps, FormikProps } from '../src';
 
 import { shallow, mount } from 'enzyme';
-import { noop } from './testHelpers';
+import { noop, sleep } from './testHelpers';
 
 interface TestFormValues {
   name: string;
@@ -23,7 +23,7 @@ describe('A <Field />', () => {
     const makeFieldTree = (props: any) =>
       shallow(<Field.WrappedComponent {...props} />);
 
-    it('calls validate during onChange if present', () => {
+    it('calls validate during onChange if present', async () => {
       const node = document.createElement('div');
       let injected: any; /** FieldProps ;) */
       const validate = jest.fn(noop);
@@ -40,6 +40,8 @@ describe('A <Field />', () => {
       );
       const { onChange } = injected;
       onChange({ target: { name: 'name', value: 'hello' } });
+
+      await sleep(0); // wait for scheduled tasks
       expect(validate).toHaveBeenCalled();
     });
 
@@ -63,7 +65,7 @@ describe('A <Field />', () => {
       expect(validate).not.toHaveBeenCalled();
     });
 
-    it('calls validate during onBlur if present', () => {
+    it('calls validate during onBlur if present', async () => {
       const node = document.createElement('div');
       let injected: any; /** FieldProps ;) */
       const validate = jest.fn(noop);
@@ -80,6 +82,8 @@ describe('A <Field />', () => {
       );
       const { onBlur } = injected;
       onBlur({ target: { name: 'name' } });
+
+      await sleep(0); // wait for scheduled tasks
       expect(validate).toHaveBeenCalled();
     });
 

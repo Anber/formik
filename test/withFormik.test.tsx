@@ -148,6 +148,8 @@ describe('withFormik()', () => {
               value: 'ian',
             },
           });
+
+        await sleep(0); // wait for scheduled tasks
         expect(validate).toHaveBeenCalled();
       });
 
@@ -192,6 +194,8 @@ describe('withFormik()', () => {
               value: 'ian',
             },
           });
+
+        await sleep(0); // wait for scheduled tasks
         expect(validate).toHaveBeenCalled();
       });
 
@@ -271,6 +275,8 @@ describe('withFormik()', () => {
               name: 'name',
             },
           });
+
+        await sleep(0); // wait for scheduled tasks
         expect(validate).toHaveBeenCalled();
       });
 
@@ -292,6 +298,7 @@ describe('withFormik()', () => {
             },
           });
 
+        await sleep(0); // wait for scheduled tasks
         expect(validate).toHaveBeenCalled();
       });
     });
